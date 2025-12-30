@@ -2,15 +2,13 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db, createPrompt, getPrompt, updatePrompt, listPrompts, softDeletePrompt } from './index';
 
-beforeEach(async () => {
-  // Clear DB between tests
-  await db.delete();
-  // Recreate DB instance
-  // Note: reinstantiate as needed
-});
+
 
 describe('DB CRUD', () => {
   it('creates and reads a prompt', async () => {
+    // Debug DB open state
+    // @ts-ignore
+    console.log('DB open?', db && (db as any).isOpen && (db as any).isOpen());
     const p = await createPrompt({ title: 'T1', body: 'B1', tags: [], favorite: false });
     const got = await getPrompt(p.id);
     expect(got).toBeTruthy();

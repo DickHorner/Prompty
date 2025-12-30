@@ -33,8 +33,19 @@ class PromptDB extends Dexie {
 
 export const db = new PromptDB();
 
+async function ensureOpen() {
+  try {
+    // @ts-ignore - Dexie has 'open' method
+    if (!db.opened) {
+      // @ts-ignore
+      await db.open();
+    }
+  } catch {}
+}
+
 // CRUD helpers
 export async function createPrompt(data: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'> & { id?: string }) {
+  await ensureOpen();
   const now = Date.now();
   const prompt: Prompt = {
     id: data.id || crypto.randomUUID(),
@@ -58,6 +69,7 @@ export async function createPrompt(data: Omit<Prompt, 'id' | 'createdAt' | 'upda
 }
 
 export async function updatePrompt(id: string, patch: Partial<Prompt>) {
+  await ensureOpen();
   const now = Date.now();
   const existing = await db.prompts.get(id);
   if (!existing) throw new Error('Prompt not found');
@@ -70,6 +82,7 @@ export async function updatePrompt(id: string, patch: Partial<Prompt>) {
 }
 
 export async function softDeletePrompt(id: string) {
+  await ensureOpen();
   const prompt = await db.prompts.get(id);
   if (!prompt) return;
   prompt.deleted = true;
@@ -81,10 +94,12 @@ export async function softDeletePrompt(id: string) {
 }
 
 export async function getPrompt(id: string) {
+  await ensureOpen();
   return db.prompts.get(id);
 }
 
 export async function listPrompts(opts?: { limit?: number; includeDeleted?: boolean }) {
+  await ensureOpen();
   const limit = opts?.limit ?? 50;
   const includeDeleted = opts?.includeDeleted ?? false;
   let collection = db.prompts.orderBy('favorite').reverse();
@@ -99,8 +114,8 @@ export async function listPrompts(opts?: { limit?: number; includeDeleted?: bool
     .slice(0, limit);
   return filtered;
 }
-
 export async function searchPrompts(query: string, limit = 50) {
+  await ensureOpen();
   const q = query.toLowerCase();
   const all = await db.prompts.toArray();
   return all
@@ -110,6 +125,7 @@ export async function searchPrompts(query: string, limit = 50) {
 }
 
 export async function incrementUsage(id: string) {
+  await ensureOpen();
   const p = await db.prompts.get(id);
   if (!p) return;
   p.usageCount = (p.usageCount || 0) + 1;

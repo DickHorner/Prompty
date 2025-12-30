@@ -10,8 +10,10 @@ afterEach(() => {
 
 // Reset Dexie DB between tests if necessary
 import { db } from '../db';
-afterEach(async () => {
+
+beforeEach(async () => {
   try {
-    await db.delete();
+    await db.prompts.clear();
+    await db.meta.clear();
   } catch {}
 });
