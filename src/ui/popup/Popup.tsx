@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './popup.css';
 
 interface Prompt {
@@ -13,6 +13,8 @@ export function Popup() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [syncStatus] = useState<string>('Not synced');
+  const [tooltip, setTooltip] = useState<{ visible: boolean; content: string; x: number; y: number } | null>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Load prompts from Dexie DB
@@ -77,6 +79,26 @@ export function Popup() {
     chrome.runtime.openOptionsPage();
   };
 
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>, prompt: Prompt) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setTooltip({
+        visible: true,
+        content: prompt.body,
+        x: rect.left,
+        y: rect.bottom + 5
+      });
+    }, 300); // 300ms delay
+  };
+
+  const handleMouseLeave = () => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    setTooltip(null);
+  };
+
   return (
     <div className="popup-container">
       <header className="popup-header">
@@ -114,9 +136,15 @@ export function Popup() {
           </div>
         ) : (
           filteredPrompts.map(prompt => (
-            <div key={prompt.id} className="prompt-item">
+            <div 
+              key={prompt.id} 
+              className="prompt-item"
+              onMouseEnter={(e) => handleMouseEnter(e, prompt)}
+              onMouseLeave={handleMouseLeave}
+              onClick={() => handleInsertPrompt(prompt)}
+            >
               <div className="prompt-header">
-                <span className="prompt-title" onClick={() => handleInsertPrompt(prompt)}>
+                <span className="prompt-title">
                   {prompt.favorite && <span className="favorite-icon">⭐</span>}
                   {prompt.title}
                 </span>
@@ -185,6 +213,19 @@ export function Popup() {
           + Neuer Prompt
         </button>
       </footer>
+
+      {tooltip && tooltip.visible && (
+        <div 
+          className="tooltip"
+          style={{
+            left: tooltip.x,
+            top: tooltip.y,
+            position: 'fixed' // Use fixed for popup context
+          }}
+        >
+          {tooltip.content}
+        </div>
+      )}
     </div>
   );
 }
