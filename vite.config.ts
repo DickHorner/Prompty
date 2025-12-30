@@ -34,13 +34,20 @@ export default defineConfig({
           // Map entry names to output filenames
           const nameMap: Record<string, string> = {
             background: 'background.js',
-            content: 'content.js'
+            content: 'content.js',
+            popup: 'popup.js',
+            options: 'options.js'
           };
           return nameMap[chunkInfo.name] || '[name].js';
         },
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
+          // Flatten all assets and HTML to the root of dist
           if (assetInfo.name?.endsWith('.css')) {
+            return '[name][extname]';
+          }
+          if (assetInfo.name?.endsWith('.html')) {
+            // Place HTML files at root
             return '[name][extname]';
           }
           return 'assets/[name]-[hash][extname]';
