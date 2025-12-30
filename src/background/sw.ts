@@ -43,13 +43,20 @@ function createContextMenus() {
       contexts: ['editable']
     });
     
-    // Placeholder submenu items (will be populated dynamically)
+    // Populate submenu items from DB
+    // We create a placeholder initially; real population will happen after DB is ready
     chrome.contextMenus.create({
       id: 'insert-loading',
       parentId: 'insert-prompt-root',
       title: 'Lädt...',
       contexts: ['editable']
     });
+
+    // Attempt to populate with prompts from DB
+    populateInsertPromptsMenu().catch(() => {
+      // Swallow errors for M1 until DB is fully integrated
+    });
+
     
     // Save selection as prompt
     chrome.contextMenus.create({
@@ -70,22 +77,76 @@ function createContextMenus() {
 }
 
 /**
+ * Populate 'Prompt einfügen…' submenu from DB
+ */
+async function populateInsertPromptsMenu() {
+  // Remove existing submenu items under insert-prompt-root
+  const children = await new Promise<chrome.contextMenus.ContextMenu[]>(resolve =>
+    chrome.contextMenus.removeAll(() => resolve([]))
+  );
+
+  // Recreate root and populate
+  chrome.contextMenus.create({
+    id: 'insert-prompt-root',
+    title: 'Prompt einfügen…',
+    contexts: ['editable']
+  });
+
+  // Insert top favorites + recents
+  try {
+    // Import DB lazily to avoid loading before it's available
+    const { listPrompts } = await import('../db/index');
+    const top = await listPrompts({ limit: 10 });
+    if (top.length === 0) {
+      chrome.contextMenus.create({
+        id: 'insert-loading',
+        parentId: 'insert-prompt-root',
+        title: 'Keine Prompts',
+        contexts: ['editable']
+      });
+    } else {
+      for (const p of top) {
+        chrome.contextMenus.create({
+          id: `insert-prompt-${p.id}`,
+          parentId: 'insert-prompt-root',
+          title: `${p.favorite ? '⭐ ' : ''}${p.title}`,
+          contexts: ['editable']
+        });
+      }
+      chrome.contextMenus.create({
+        id: 'insert-more',
+        parentId: 'insert-prompt-root',
+        title: 'Mehr…',
+        contexts: ['editable']
+      });
+    }
+  } catch (err) {
+    console.warn('[Background] Failed to populate prompts menu:', err);
+  }
+}
+
+/**
  * Handle context menu clicks
  */
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  console.log('[Background] Context menu clicked:', info.menuItemId);
+  const menuId = String(info.menuItemId);
+  console.log('[Background] Context menu clicked:', menuId);
   
-  switch (info.menuItemId) {
+  switch (menuId) {
     case 'save-selection':
       handleSaveSelection(info, tab);
       break;
     case 'open-manager':
       handleOpenManager();
       break;
+    case 'insert-more':
+      // Open popup to show full list
+      chrome.action.openPopup();
+      break;
     default:
       // Handle prompt insertion (menu items will be dynamically created)
-      if (info.menuItemId.startsWith('insert-prompt-')) {
-        handleInsertPrompt(info, tab);
+      if (menuId.startsWith('insert-prompt-')) {
+        insertPromptFromMenu(info, tab);
       }
       break;
   }
@@ -118,20 +179,34 @@ async function handleSaveSelection(info: chrome.contextMenus.OnClickData, tab?: 
 /**
  * Handle inserting a prompt into the active field
  */
-async function handleInsertPrompt(info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab) {
+async function insertPromptFromMenu(info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab) {
   if (!tab?.id) return;
-  
-  const promptId = info.menuItemId.replace('insert-prompt-', '');
+
+  const promptId = String(info.menuItemId).replace('insert-prompt-', '');
   console.log('[Background] Inserting prompt:', promptId);
-  
-  // TODO: Fetch prompt from DB (will be implemented in M1)
-  // For now, send a test message
-  chrome.tabs.sendMessage(tab.id, {
-    type: 'INSERT_PROMPT',
-    body: 'Test prompt content - DB integration coming in M1'
-  }).catch((error) => {
-    console.error('[Background] Failed to send message to content script:', error);
-  });
+
+  try {
+    const { getPrompt, incrementUsage } = await import('../db/index');
+    const p = await getPrompt(promptId);
+    if (!p) throw new Error('Prompt not found');
+
+    // Track usage
+    incrementUsage(promptId).catch(() => {});
+
+    chrome.tabs.sendMessage(tab.id as number, {
+      type: 'INSERT_PROMPT',
+      body: p.body
+    }).catch((error) => {
+      console.error('[Background] Failed to send message to content script:', error);
+    });
+  } catch (err) {
+    console.error('[Background] Failed to insert prompt from DB:', err);
+    // Fallback message
+    chrome.tabs.sendMessage(tab?.id as number, {
+      type: 'INSERT_PROMPT',
+      body: 'Test prompt content - DB integration coming in M1'
+    }).catch(() => {});
+  }
 }
 
 /**
@@ -145,7 +220,7 @@ function handleOpenManager() {
 /**
  * Handle messages from other parts of the extension
  */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   console.log('[Background] Received message:', message.type);
   
   switch (message.type) {
@@ -155,6 +230,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true; // Keep channel open for async response
       
+    case 'REFRESH_MENUS':
+    case 'DB_UPDATED':
+      // Re-populate menus when DB updates
+      populateInsertPromptsMenu().catch(() => {});
+      break;
+
     default:
       console.log('[Background] Unknown message type:', message.type);
       break;
@@ -164,3 +245,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Keep service worker alive (MV3 best practice for periodic tasks)
 // For now, just log that we're active
 console.log('[Background] Service worker loaded');
+
+// Mark this file as a module to avoid polluting global scope
+export {};

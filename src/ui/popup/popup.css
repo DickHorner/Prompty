@@ -106,6 +106,21 @@ body {
   margin-bottom: 6px;
 }
 
+.prompt-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-small {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-danger {
+  color: #c33;
+}
 .prompt-title {
   font-weight: 500;
   color: #333;

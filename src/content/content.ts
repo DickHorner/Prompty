@@ -28,28 +28,29 @@ function findActiveInput(): HTMLElement | null {
  */
 function insertIntoInput(element: HTMLTextAreaElement | HTMLInputElement, text: string): boolean {
   try {
-    const start = element.selectionStart || 0;
-    const end = element.selectionEnd || 0;
-    
+    const start = (element as HTMLTextAreaElement | HTMLInputElement).selectionStart || 0;
+    const end = (element as HTMLTextAreaElement | HTMLInputElement).selectionEnd || 0;
+
     // Use setRangeText for better support
     if ('setRangeText' in element) {
-      element.setRangeText(text, start, end, 'end');
-      
+      (element as HTMLTextAreaElement | HTMLInputElement).setRangeText(text, start, end, 'end');
+
       // Trigger input event for frameworks like React
       element.dispatchEvent(new Event('input', { bubbles: true }));
       element.dispatchEvent(new Event('change', { bubbles: true }));
-      
+
       return true;
     }
-    
+
     // Fallback: manual insertion
-    const value = element.value;
-    element.value = value.substring(0, start) + text + value.substring(end);
-    element.selectionStart = element.selectionEnd = start + text.length;
-    
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-    
+    const input = element as HTMLTextAreaElement | HTMLInputElement;
+    const value = input.value;
+    input.value = value.substring(0, start) + text + value.substring(end);
+    input.selectionStart = input.selectionEnd = start + text.length;
+
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+
     return true;
   } catch (error) {
     console.error('[Content] Failed to insert into input:', error);
@@ -157,7 +158,7 @@ function showToast(message: string, duration: number = 3000) {
 /**
  * Handle inserting a prompt
  */
-async function handleInsertPrompt(body: string) {
+async function insertPromptIntoActiveField(body: string) {
   console.log('[Content] Inserting prompt:', body.substring(0, 50) + '...');
   
   const activeInput = findActiveInput();
@@ -198,24 +199,27 @@ async function handleInsertPrompt(body: string) {
 /**
  * Listen for messages from background script
  */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[Content] Received message:', message.type);
-  
-  switch (message.type) {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  console.log('[Content] Received message:', message?.type);
+
+  switch (message?.type) {
     case 'INSERT_PROMPT':
-      handleInsertPrompt(message.body);
+      insertPromptIntoActiveField(message.body);
       sendResponse({ success: true });
       break;
-      
+
     case 'GET_SELECTION':
       const selection = window.getSelection()?.toString() || '';
       sendResponse({ selection });
       break;
-      
+
     default:
-      console.log('[Content] Unknown message type:', message.type);
+      console.log('[Content] Unknown message type:', message?.type);
       break;
   }
-  
+
   return true; // Keep channel open for async responses
 });
+
+// Mark this file as a module to avoid polluting global scope
+export {};
