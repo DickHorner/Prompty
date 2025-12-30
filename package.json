@@ -12,8 +12,9 @@
     "test": "vitest"
   },
   "devDependencies": {
-    "@testing-library/react": "^14.1.2",
+    "@testing-library/react": "^14.3.1",
     "@types/chrome": "^0.0.268",
+<<<<<<< HEAD
     "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
@@ -29,10 +30,27 @@
     "vite": "^7.3.0",
     "vite-plugin-static-copy": "^3.1.4",
     "vitest": "^4.0.16"
+=======
+    "@types/node": "^20.19.27",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "fake-indexeddb": "^6.2.5",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0",
+    "vite-plugin-static-copy": "^3.1.4",
+    "vitest": "^4.0.16",
+    "jsdom": "^24.1.3"
+>>>>>>> 6d062e49fcbb6206b1760cf6f64d485692ac4609
   },
   "dependencies": {
-    "dexie": "^4.0.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "dexie": "^4.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
