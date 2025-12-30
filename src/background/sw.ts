@@ -77,6 +77,31 @@ function createContextMenus() {
 }
 
 /**
+ * Refresh and cache top prompts in storage for fast popup startup
+ */
+async function refreshCachedPrompts() {
+  try {
+    const { listPrompts } = await import('../db/index');
+    const top = await listPrompts({ limit: 50 });
+    await new Promise<void>((resolve) =>
+      chrome.storage.local.set({ cachedPrompts: top }, () => resolve())
+    );
+    // Broadcast updated prompts to any open popups
+    chrome.runtime.sendMessage({ type: 'PROMPTS_UPDATED', prompts: top }).catch(() => {});
+    return top;
+  } catch (err) {
+    console.warn('[Background] Failed to refresh cached prompts:', err);
+    return [];
+  }
+}
+
+// Refresh cache on startup
+refreshCachedPrompts().catch(() => {});
+
+// Expose refresh function in module scope for testing (no-op when SW unloads)
+export { refreshCachedPrompts };
+
+/**
  * Populate 'Prompt einfügen…' submenu from DB
  */
 async function populateInsertPromptsMenu() {
@@ -231,10 +256,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       return true; // Keep channel open for async response
       
     case 'REFRESH_MENUS':
+      populateInsertPromptsMenu().catch(() => {});
+      break;
+
     case 'DB_UPDATED':
       // Re-populate menus when DB updates
       populateInsertPromptsMenu().catch(() => {});
+      // Refresh cached prompts for fast popup startup
+      refreshCachedPrompts().catch(() => {});
       break;
+
+    case 'REFRESH_PROMPTS':
+      // Request explicit refresh and return results via sendResponse
+      (async () => {
+        const top = await refreshCachedPrompts();
+        sendResponse({ prompts: top });
+      })();
+      return true; // keep channel open for async response
 
     default:
       console.log('[Background] Unknown message type:', message.type);

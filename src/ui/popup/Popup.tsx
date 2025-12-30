@@ -17,37 +17,39 @@ export function Popup() {
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Load prompts from Dexie DB
     let mounted = true;
-    import('../../db').then(async (mod) => {
-      const list = await mod.listPrompts({ limit: 50 });
-      if (mounted) setPrompts(list);
-    }).catch((err) => {
-      console.warn('[Popup] Failed to load prompts from DB:', err);
-      // Fallback placeholder
-      if (mounted) setPrompts([
-        {
-          id: '1',
-          title: 'Example Prompt',
-          body: 'This is a placeholder prompt. Database integration coming in M1.',
-          favorite: true,
-          lastUsedAt: Date.now(),
-          tags: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          usageCount: 0,
-          deleted: false
-        }
-      ]);
-    });
 
-    // Listen for DB updates to refresh UI
+    // 1) Read cached prompts from storage to render immediately
+    try {
+      chrome.storage.local.get(['cachedPrompts'], (res) => {
+        if (!mounted) return;
+        if (res?.cachedPrompts) setPrompts(res.cachedPrompts as Prompt[]);
+
+        // 2) Ask background to refresh prompts; it will respond with PROMPTS_UPDATED
+        try {
+          chrome.runtime.sendMessage({ type: 'REFRESH_PROMPTS' }, (resp) => {
+            if (!mounted) return;
+            if (resp?.prompts) setPrompts(resp.prompts as Prompt[]);
+          });
+        } catch {}
+      });
+    } catch (e) {
+      // Fallback to DB import if storage isn't available
+      import('../../db').then(async (mod) => {
+        const list = await mod.listPrompts({ limit: 50 });
+        if (mounted) setPrompts(list);
+      }).catch((err) => {
+        console.warn('[Popup] Failed to load prompts from DB:', err);
+      });
+    }
+
+    // Listen for background PROMPTS_UPDATED messages
     const onMessage = (msg: any) => {
-      if (msg?.type === 'DB_UPDATED') {
-        import('../../db').then(async (mod) => {
-          const list = await mod.listPrompts({ limit: 50 });
-          setPrompts(list);
-        }).catch(() => {});
+      if (msg?.type === 'PROMPTS_UPDATED' && msg.prompts) {
+        setPrompts(msg.prompts);
+      } else if (msg?.type === 'DB_UPDATED') {
+        // fallback: trigger a refresh
+        try { chrome.runtime.sendMessage({ type: 'REFRESH_PROMPTS' }); } catch {}
       }
     };
     chrome.runtime.onMessage.addListener(onMessage);

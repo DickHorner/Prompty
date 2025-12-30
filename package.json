@@ -9,7 +9,8 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
-    "test": "vitest"
+    "test": "vitest",
+    "postbuild": "node -e \"const fs=require('fs');const path=require('path');const projectRoot=process.cwd();const dist=path.join(projectRoot,'dist');const mappings=[{src:path.join(projectRoot,'src','ui','popup','popup.html'),out:path.join(dist,'popup.html'),js:'popup.js',css:'popup.css'},{src:path.join(projectRoot,'src','ui','options','options.html'),out:path.join(dist,'options.html'),js:'options.js',css:'options.css'}];mappings.forEach(m=>{try{let html=fs.readFileSync(m.src,'utf8');html=html.replace(/<script[^>]*src=[\\\"'][^\\\"']*[\\\"'][^>]*><\\/script>/,'<script type=\\\"module\\\" src=\\\"./'+m.js+'\\\"></script>');html=html.replace(/src\\\/ui\\\/[a-z0-9_\\\-\\\/]\\+\\\//gi,'./');if(fs.existsSync(path.join(dist,m.css)) && !/href=[\\\"']\\.\\\/.+?\\.css[\\\"']/.test(html)) html=html.replace(/<\\/head>/i,'  <link rel=\\\"stylesheet\\\" href=\\\"./'+m.css+'\\\">\\n<\\/head>');fs.writeFileSync(m.out,html,'utf8');console.log('wrote',m.out);}catch(e){console.warn('skip',m.src,e.message);}})\" 
   },
   "devDependencies": {
     "@testing-library/react": "^14.3.1",

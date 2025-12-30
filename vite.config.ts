@@ -15,6 +15,14 @@ export default defineConfig({
         {
           src: 'public/icons/*',
           dest: 'icons'
+        },
+        {
+          src: 'src/ui/popup/popup.html',
+          dest: '.'
+        },
+        {
+          src: 'src/ui/options/options.html',
+          dest: '.'
         }
       ]
     })
