@@ -1,5 +1,3 @@
-# agents.md — Arbeitsanweisungen für Copilot/Codex (Prompt Manager Extension)
-
 ## Rollen
 - **Codex/Copilot**: implementiert Code, Tests, Build, und hält sich an Plan.md.
 - **Du (Agent)**: fragst nur nach, wenn eine Entscheidung unblockbar ist. Sonst: best effort + dokumentiere Annahmen.
