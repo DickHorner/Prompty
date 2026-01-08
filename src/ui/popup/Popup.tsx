@@ -90,7 +90,7 @@ export function Popup() {
         x: rect.left,
         y: rect.bottom + 5
       });
-    }, 300); // 300ms delay
+    }, 200); // Exact 200ms delay per spec
   };
 
   const handleMouseLeave = () => {
