@@ -3,7 +3,7 @@
  * MV3 compatible - handles context menus, messaging, Notion sync
  */
 
-import { notionClient } from '../notion-client';
+
 import { syncWithNotion } from '../sync';
 
 // Extension installation and updates
@@ -250,51 +250,6 @@ async function insertPromptFromMenu(
 function handleOpenManager() {
   console.log('[Background] Opening Prompt Manager');
   chrome.action.openPopup();
-}
-
-/**
- * Handle sync from Notion
- */
-async function handleSyncFromNotion() {
-  console.log('[Background] Starting manual Notion sync...');
-
-  try {
-    // Get token and config from storage
-    const storage = await chrome.storage.local.get(['notionToken', 'notionDatabaseId', 'notionPropertyMap']);
-    const token = storage.notionToken;
-    const databaseId = storage.notionDatabaseId;
-    const propertyMap = storage.notionPropertyMap || {
-      title: 'Name',
-      body: 'Body',
-      tags: 'Tags',
-      favorite: 'Favorite'
-    };
-
-    if (!token || !databaseId) {
-      console.warn('[Background] Notion config incomplete. Opening settings...');
-      chrome.runtime.openOptionsPage();
-      return;
-    }
-
-    const result = await syncWithNotion(
-      { notionToken: token, notionDatabaseId: databaseId },
-      propertyMap
-    );
-
-    console.log(`[Background] Sync complete: merged ${result.merged} prompts`);
-
-    // Refresh cached prompts and menus
-    await refreshCachedPrompts();
-    await populateInsertPromptsMenu();
-
-    // Notify UI
-    chrome.runtime.sendMessage({
-      type: 'SYNC_COMPLETE',
-      merged: result.merged
-    }).catch(() => {});
-  } catch (err) {
-    console.error('[Background] Sync failed:', err);
-  }
 }
 
 /**
