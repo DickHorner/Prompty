@@ -135,47 +135,33 @@ npm run format
 npm run test
 ```
 
-## Next Milestones
+## Next Steps
 
-### M1: Local DB + CRUD UI
-- Dexie IndexedDB setup
-- Prompt CRUD operations
-- Tag system
-- Favorites & recently used
-
-### M2: Context Menu + Insert
-- Dynamic context menu population
-- Text insertion into various input types
-- Fallback to clipboard
-
-### M3: Hover Preview (500ms)
-- Preview tooltip on hover
-- Debounced delay implementation
-
-### M4: OneDrive Sync
-- OAuth authentication
-- AppFolder file storage
-- Pull/Push sync logic
-- Conflict resolution
-
-### M5: Polish & Release
-- Error handling improvements
-- Performance optimization
-- Documentation
-- Release build
+### Future Enhancements
+- Two-way sync (push local changes to Notion)
+- Rich text formatting support
+- Bulk import/export
+- Advanced search filters
+- Keyboard shortcuts
+- Multi-language support
+- Custom field mappings
 
 ## Tech Stack
 
-- **TypeScript** - Type safety
-- **React** - UI framework
-- **Vite** - Build tool
-- **Dexie** - IndexedDB wrapper (M1+)
-- **Microsoft Graph** - OneDrive API (M4+)
+- **Framework**: React 18.2.0 with TypeScript 5.3.3
+- **Build Tool**: Vite 7.3.1 (fast ES module bundler)
+- **Extension**: Manifest V3 (service worker, content scripts)
+- **Storage**: Dexie.js 4.0.1 (IndexedDB wrapper for local-first caching)
+- **API Integration**: Notion API v2022-06-28 (REST with Bearer token auth)
+- **Testing**: Vitest + @testing-library/react
+- **UI**: CSS with custom styling
 
 ## Documentation
 
-See [docs/plan.md](docs/plan.md) for detailed feature specifications and architecture.
-See [docs/agents.md](docs/agents.md) for development guidelines.
+- [USER_GUIDE.md](USER_GUIDE.md) - End-user setup and usage instructions
+- [BUILD.md](BUILD.md) - Build and development instructions
+- [docs/plan.md](docs/plan.md) - Complete project plan and architecture
+- [docs/agents.md](docs/agents.md) - Development guidelines and agent instructions
 
 ## License
 
